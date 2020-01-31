@@ -25,19 +25,20 @@ class GetWebsite:
         pass
 
     async def producer_get_site(self, site_queue: queues.Queue, response_queue: queues.LifoQueue):
-        while True:
+        while site_queue.qsize() > 0:
+            logger.debug(site_queue.qsize())
             site: str = await site_queue.get()
             print(site)
             res = requests.get(site)
             await response_queue.put(res)
             site_queue.task_done()
+        await response_queue.put(-1)
 
     async def consumer_log_response(self, queue: queues.Queue):
-        while True:
+        while queue.qsize() > 0:
             item: requests.Response = await queue.get()
-            print(item.url, item.status_code)
-            logger.debug(item.status_code)
-            await asyncio.sleep(random.random())
+            print(item)
+            logger.debug(item)
             queue.task_done()
 
     async def run(self):
@@ -46,10 +47,11 @@ class GetWebsite:
         for site in site_list:
             site_queue.put_nowait(site)
         print(site_queue.qsize())
-        run = await asyncio.gather(self.consumer_log_response(response_queue),self.producer_get_site(site_queue, response_queue)
-                       )
-        run.cancel()
+        run = await asyncio.gather(self.consumer_log_response(response_queue),
+                                   self.producer_get_site(site_queue, response_queue)
+                                   )
 
-get_website = GetWebsite()
-asyncio.run(get_website.run())
-
+m = GetWebsite()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(m.run())
+loop.close()
