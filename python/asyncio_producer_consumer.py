@@ -23,21 +23,20 @@ class GetWebsite:
     def __init__(self):
         pass
 
-    async def producer_get_site(self, site_queue: queues.Queue, response_queue: queues.LifoQueue):
+    async def producer_get_site(self, site_queue: queues.Queue, response_queue: queues.Queue):
         while site_queue.qsize() > 0:
-            logger.debug(site_queue.qsize())
             site: str = await site_queue.get()
-            print(site)
-            requests.get(site)
+            res = requests.get(site)
+            print(res.status_code)
             await response_queue.put(res)
             site_queue.task_done()
-        await response_queue.put(-1)
 
-    async def consumer_log_response(self, queue: queues.Queue):
-        while queue.qsize() > 0:
-            item: requests.Response = await queue.get()
-            print(item)
-            queue.task_done()
+    async def consumer_log_response(self, res_queue: queues.Queue):
+        while True:
+            print(res_queue.qsize())
+            item: requests.Response = await res_queue.get()
+            print(item.url)
+            res_queue.task_done()
 
     async def run(self):
         site_queue: queues.Queue = queues.Queue()
