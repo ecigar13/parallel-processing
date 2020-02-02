@@ -23,8 +23,8 @@ class TestMulti:
         while q.qsize() < limit:
             num = random.random()
             q.put(num)
-            print(f"Q size {q.qsize()}")
-            time.sleep(0.25)
+            print(f"Q size {q.qsize()} current process {current_process().name}")
+            time.sleep(0.2)
         q.put(None)
 
     def consumer(self, q: Queue):
@@ -32,7 +32,7 @@ class TestMulti:
             temp = q.get()
             if temp is None:
                 break
-            print(f"Getting: {temp}")
+            print(f"Getting: {temp} current process {current_process().name}")
 
     def run(self):
         # pool = Pool(cpu_count())
@@ -40,6 +40,7 @@ class TestMulti:
         q: Queue = m.Queue()
         producer_pool = Pool(2)
         consumer_pool = Pool(2)
+
         limit: int = 20
 
         consumer_pool.apply_async(self.consumer, args=(q,))
