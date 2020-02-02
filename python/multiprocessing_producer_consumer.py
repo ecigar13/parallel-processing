@@ -15,30 +15,35 @@ site_list: [] = [
     "https://www.dropbox.com/", "https://www.youtube.com/channel/UCNJIEbGZaScUDsq_DMYTjYg"
 ]
 
+int_list: [] = [i for i in range(9999)]
+
 
 class GetWebsite:
 
     def __init__(self):
         pass
 
-    def print_sync(self):
-        for link in site_list:
-            print(link)
+    def print_sync(self, input_list: []):
+        for link in input_list:
+            self.print_base(link)
 
     def print_base(self, x: str):
-        print(x)
+        print(x, end=" ")
 
-    def print_multi(self):
+    def print_multi(self, input_list: []):
         with Pool(5) as p:
-            p.map(self.print_base, site_list)
+            p.map(self.print_base, input_list)
 
 
 if __name__ == '__main__':
     m = GetWebsite()
     start = time.perf_counter_ns()
-    m.print_sync()
-    print(time.perf_counter_ns() - start)
+    m.print_sync(int_list)
+    interval = time.perf_counter_ns() - start
 
     start = time.perf_counter_ns()
-    m.print_multi()
-    print(time.perf_counter_ns() - start)
+    m.print_multi(int_list)
+    interval1 = time.perf_counter_ns() - start
+    print("\n")
+    print(interval, interval1)
+    print(interval > interval1)
