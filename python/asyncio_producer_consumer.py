@@ -1,6 +1,5 @@
 import asyncio
 import logging.config
-import random
 from asyncio import queues
 
 import requests
@@ -29,7 +28,7 @@ class GetWebsite:
             logger.debug(site_queue.qsize())
             site: str = await site_queue.get()
             print(site)
-            res = requests.get(site)
+            requests.get(site)
             await response_queue.put(res)
             site_queue.task_done()
         await response_queue.put(-1)
@@ -38,20 +37,17 @@ class GetWebsite:
         while queue.qsize() > 0:
             item: requests.Response = await queue.get()
             print(item)
-            logger.debug(item)
             queue.task_done()
 
     async def run(self):
-        site_queue: queues.LifoQueue = queues.LifoQueue()
-        response_queue: queues.LifoQueue = queues.LifoQueue()
+        site_queue: queues.Queue = queues.Queue()
+        response_queue: queues.Queue = queues.Queue()
         for site in site_list:
-            site_queue.put_nowait(site)
+            await site_queue.put(site)
         print(site_queue.qsize())
-        run = await asyncio.gather(self.consumer_log_response(response_queue),
-                                   self.producer_get_site(site_queue, response_queue)
-                                   )
+        await asyncio.gather(self.consumer_log_response(response_queue),
+                             self.producer_get_site(site_queue, response_queue))
 
-m = GetWebsite()
-loop = asyncio.get_event_loop()
-loop.run_until_complete(m.run())
-loop.close()
+if __name__ == '__main__':
+    m = GetWebsite()
+    asyncio.run(m.run())

@@ -1,53 +1,44 @@
 import asyncio
 import random
-import time
 
 
-async def worker(name, queue):
+async def produce(queue, n):
+    for x in range(n):
+        # produce an item
+        print('producing {}/{}'.format(x, n))
+        # simulate i/o operation using sleep
+        await asyncio.sleep(random.random())
+        item = str(x)
+        # put the item in the queue
+        await queue.put(item)
+
+
+async def consume(queue):
     while True:
-        # Get a "work item" out of the queue.
-        sleep_for = await queue.get()
+        # wait for an item from the producer
+        item = await queue.get()
 
-        # Sleep for the "sleep_for" seconds.
-        await asyncio.sleep(sleep_for)
+        # process the item
+        print('consuming {}...'.format(item))
+        # simulate i/o operation using sleep
+        await asyncio.sleep(random.random())
 
-        # Notify the queue that the "work item" has been processed.
+        # Notify the queue that the item has been processed
         queue.task_done()
 
-        print(f'{name} has slept for {sleep_for:.2f} seconds')
 
-
-async def main():
-    # Create a queue that we will use to store our "workload".
+async def run(n):
     queue = asyncio.Queue()
-
-    # Generate random timings and put them into the queue.
-    total_sleep_time = 0
-    for _ in range(20):
-        sleep_for = random.uniform(0.05, 1.0)
-        total_sleep_time += sleep_for
-        queue.put_nowait(sleep_for)
-
-    # Create three worker tasks to process the queue concurrently.
-    tasks = []
-    for i in range(3):
-        task = asyncio.create_task(worker(f'worker-{i}', queue))
-        tasks.append(task)
-
-    # Wait until the queue is fully processed.
-    started_at = time.monotonic()
+    # schedule the consumer
+    consumer = asyncio.ensure_future(consume(queue))
+    # run the producer and wait for completion
+    await produce(queue, n)
+    # wait until the consumer has processed all items
     await queue.join()
-    total_slept_for = time.monotonic() - started_at
-
-    # Cancel our worker tasks.
-    for task in tasks:
-        task.cancel()
-    # Wait until all worker tasks are cancelled.
-    await asyncio.gather(*tasks, return_exceptions=True)
-
-    print('====')
-    print(f'3 workers slept in parallel for {total_slept_for:.2f} seconds')
-    print(f'total expected sleep time: {total_sleep_time:.2f} seconds')
+    # the consumer is still awaiting for an item, cancel it
+    consumer.cancel()
 
 
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+loop.run_until_complete(run(10))
+loop.close()
