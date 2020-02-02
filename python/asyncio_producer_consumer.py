@@ -30,17 +30,20 @@ class GetWebsite:
             print(res.status_code)
             await response_queue.put(res)
             site_queue.task_done()
+        await response_queue.put(None)
 
     async def consumer_log_response(self, res_queue: queues.Queue):
         while True:
             print(res_queue.qsize())
             item: requests.Response = await res_queue.get()
+            if item is None:
+                break
             print(item.url)
             res_queue.task_done()
 
     async def run(self):
-        site_queue: queues.Queue = queues.Queue()
-        response_queue: queues.Queue = queues.Queue()
+        site_queue: asyncio.Queue = asyncio.Queue()
+        response_queue: asyncio.Queue = asyncio.Queue()
         for site in site_list:
             await site_queue.put(site)
         print(site_queue.qsize())
