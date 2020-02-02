@@ -1,7 +1,6 @@
 import asyncio
 import logging.config
 import random
-from asyncio import queues
 
 import requests
 
@@ -24,39 +23,40 @@ class GetWebsite:
     def __init__(self):
         pass
 
-    async def producer_site(self, site_queue: queues.Queue):
+    async def producer_site(self, site_queue: asyncio.Queue):
         for i in site_list:
             print(i)
             await site_queue.put(i)
-            await asyncio.sleep(random.random())
+        await site_queue.put(None)
 
-    async def producer_get_site(self, site_queue: queues.Queue, response_queue: queues.LifoQueue):
-        while site_queue.qsize() > 0:
-            logger.debug(site_queue.qsize())
+    async def producer_get_site(self, site_queue: asyncio.Queue, response_queue: asyncio.LifoQueue):
+        while True:
             site: str = await site_queue.get()
+            if site is None:
+                break
             print(site)
-
             res: requests.Response = requests.get(site)
             await response_queue.put(res)
             site_queue.task_done()
+        await response_queue.put(None)
 
-    async def consumer_log_response(self, queue: queues.Queue):
-        while queue.qsize() > 0:
-            item: requests.Response = await queue.get()
+    async def consumer_log_response(self, response_queue: asyncio.Queue):
+        while True:
+            item: requests.Response = await response_queue.get()
+            if item is None:
+                break
             print(item)
-
-            logger.debug(item)
-            queue.task_done()
+            response_queue.task_done()
 
     async def run(self):
-        site_queue: queues.LifoQueue = queues.Queue()
-        response_queue: queues.LifoQueue = queues.Queue()
+        site_queue: asyncio.Queue = asyncio.Queue()
+        response_queue: asyncio.Queue = asyncio.Queue()
 
         run = await asyncio.gather(self.consumer_log_response(response_queue),
                                    self.producer_get_site(site_queue, response_queue),
                                    self.producer_site(site_queue)
                                    )
 
-
-m = GetWebsite()
-asyncio.run(m.run())
+if __name__ == '__main__':
+    m = GetWebsite()
+    asyncio.run(m.run())

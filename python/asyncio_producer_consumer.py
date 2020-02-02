@@ -24,8 +24,10 @@ class GetWebsite:
         pass
 
     async def producer_get_site(self, site_queue: queues.Queue, response_queue: queues.Queue):
-        while site_queue.qsize() > 0:
+        while True:
             site: str = await site_queue.get()
+            if site is None:
+                break
             res = requests.get(site)
             print(res.status_code)
             await response_queue.put(res)
@@ -46,6 +48,7 @@ class GetWebsite:
         response_queue: asyncio.Queue = asyncio.Queue()
         for site in site_list:
             await site_queue.put(site)
+        await site_queue.put(None)
         print(site_queue.qsize())
         await asyncio.gather(self.consumer_log_response(response_queue),
                              self.producer_get_site(site_queue, response_queue))
