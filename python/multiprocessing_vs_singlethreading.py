@@ -15,7 +15,7 @@ site_list: [] = [
     "https://www.dropbox.com/", "https://www.youtube.com/channel/UCNJIEbGZaScUDsq_DMYTjYg"
 ]
 
-int_list: [] = [i for i in range(9999)]
+int_list: [] = [i for i in range(99999)]
 
 
 class GetWebsite:
@@ -28,10 +28,10 @@ class GetWebsite:
             self.print_base(link)
 
     def print_base(self, x: str):
-        print(x, end=" ")
+        print(x*x, end="")
 
     def print_multi(self, input_list: []):
-        with Pool(5) as p:
+        with Pool(4) as p:
             p.map(self.print_base, input_list)
 
 

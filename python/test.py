@@ -1,44 +1,21 @@
-import asyncio
+from multiprocessing import Process, Queue
 import random
 
+def rand_num(queue):
+    num = random.random()
+    queue.put(num)
 
-async def produce(queue, n):
-    for x in range(n):
-        # produce an item
-        print('producing {}/{}'.format(x, n))
-        # simulate i/o operation using sleep
-        await asyncio.sleep(random.random())
-        item = str(x)
-        # put the item in the queue
-        await queue.put(item)
+if __name__ == "__main__":
+    queue = Queue()
 
+    processes = [Process(target=rand_num, args=(queue,)) for x in range(4)]
 
-async def consume(queue):
-    while True:
-        # wait for an item from the producer
-        item = await queue.get()
+    for p in processes:
+        p.start()
 
-        # process the item
-        print('consuming {}...'.format(item))
-        # simulate i/o operation using sleep
-        await asyncio.sleep(random.random())
+    for p in processes:
+        p.join()
 
-        # Notify the queue that the item has been processed
-        queue.task_done()
+    results = [queue.get() for p in processes]
 
-
-async def run(n):
-    queue = asyncio.Queue()
-    # schedule the consumer
-    consumer = asyncio.ensure_future(consume(queue))
-    # run the producer and wait for completion
-    await produce(queue, n)
-    # wait until the consumer has processed all items
-    await queue.join()
-    # the consumer is still awaiting for an item, cancel it
-    consumer.cancel()
-
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(run(10))
-loop.close()
+    print(results)
