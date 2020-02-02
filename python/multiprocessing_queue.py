@@ -14,26 +14,28 @@ class TestMulti:
         q.put(num)
 
     def consumer(self, q: Queue):
-        print(q.get())
+        if q.qsize() != 0:
+            print(q.get())
 
     def run(self):
         # pool = Pool(cpu_count())
         q: Queue = Queue()
-        process_generate = Process(target=self.producer_add, args=(q,))
-        # process_print = Process(target=self.consumer, args=(q,))
-        process_generates = [process_generate for i in range(cpu_count())]
-        # process_prints = [process_print for i in range(cpu_count())]
+        process_generates = [Process(target=self.producer_add, args=(q,)) for i in range(cpu_count())]
+        process_prints = [Process(target=self.consumer, args=(q,)) for i in range(cpu_count())]
         for p in process_generates:
             p.start()
 
         for p in process_generates:
             p.join()
 
+        print(q.qsize(), len(process_generates))
 
-        # for pr in process_prints:
-        #     pr.start()
-        # for pr in process_prints:
-        #     pr.join()
+        for pr in process_prints:
+            pr.start()
+        for pr in process_prints:
+            pr.join()
+
+        print(q.qsize(), len(process_prints))
 
 
 if __name__ == '__main__':
